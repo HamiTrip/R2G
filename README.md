@@ -38,4 +38,4 @@ you must fist create a config json file:
     
 and then run the following command :
   
-    $ docker run -v /path/to/your/conf.json:/app/conf.json -d r2g 
+    $ docker run -v /path/to/your/conf.json:/app/conf.json amirasaran/r2g 
