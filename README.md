@@ -33,7 +33,7 @@ you must fist create a config json file:
         }
       },
       "TablesConfig": [],
-      "RelationsConfig": [],
+      "RelationsConfig": []
     }
     
 and then run the following command :
