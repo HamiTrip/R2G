@@ -2,6 +2,7 @@ package main
 
 import (
 	"strings"
+	"encoding/json"
 )
 
 func (table *Table) GetTag() string {
@@ -48,14 +49,32 @@ func (table *Table) GetSetAndProperty(label string, properties map[string]string
 		if table.IsSkipProperty(key) {
 			continue
 		}
-
-		if table.IsUniqueProperty(key) {
-			property += " " + key + ":'" + FixStringStyle(value) + "' ,"
+		if err, js := isJSON(value); err == nil {
+			if table.IsUniqueProperty(key) {
+				for sub_key, sub_value := range js {
+					property += " " + sub_key + ":'" + FixStringStyle(sub_value) + "' ,"
+				}
+			} else {
+				for sub_key, sub_value := range js {
+					set += " " + label + "." + sub_key + "='" + FixStringStyle(sub_value) + "',"
+				}
+			}
 		} else {
-			set += " " + label + "." + key + "='" + FixStringStyle(value) + "',"
+			if table.IsUniqueProperty(key) {
+				property += " " + key + ":'" + FixStringStyle(value) + "' ,"
+			} else {
+				set += " " + label + "." + key + "='" + FixStringStyle(value) + "',"
+			}
 		}
+
 	}
 	return set[:len(set) - 1], property[:len(property) - 1]
+}
+
+func isJSON(s string) (error, map[string]string) {
+	var js map[string]string
+	err := json.Unmarshal([]byte(s), &js)
+	return err, js
 }
 
 func (foreign *ForeignKey) GetRelationSetAndProperty(label string, tableProperties map[string]string, referenceProperties map[string]string) (string, string) {
@@ -78,9 +97,9 @@ func (foreign *ForeignKey) GetRelationSetAndProperty(label string, tableProperti
 	return set[:len(set) - 1], property[:len(property) - 1]
 }
 
-func (foreign *ForeignKey) GetTag() string{
+func (foreign *ForeignKey) GetTag() string {
 	relationConfigs := SystemConfig.GetRelationConfig(foreign)
-	if relationConfigs.Label != ""{
+	if relationConfigs.Label != "" {
 		return relationConfigs.Label
 	}
 	return foreign.ReferenceTable.GetTag() + "_" + foreign.Table.GetTag()

@@ -176,7 +176,7 @@ func (databaseChange *DatabaseChange) createQuery() string {
 	if tableConfig.IsManyToMany {
 		query = RelationQuery("nod", databaseChange.TableStructure, databaseChange.GenerateProperties())
 	} else {
-		query = MergeQuery("nod", databaseChange.TableStructure, databaseChange.GenerateProperties())
+		query = MergeQuery("nod", databaseChange.TableStructure, databaseChange.GenerateProperties(), true)
 	}
 	return query
 }
@@ -199,12 +199,12 @@ func (databaseChange *DatabaseChange) updateQuery() string {
 		table_from := databaseChange.TableStructure.foreignKeys[0]
 		label_from := "nod" + RandStringRunes(5)
 		rows_from := table_from.ReferenceTable.GetFilteredRows(table_from.ReferenceColumnName + "='" + properties[table_from.ColumnName] + "'", -1, -1)
-		node_from := MergeQuery(label_from, table_from.ReferenceTable, rows_from[0])
+		node_from := MergeQuery(label_from, table_from.ReferenceTable, rows_from[0], false)
 
 		table_to := databaseChange.TableStructure.foreignKeys[1]
 		label_to := "nod" + RandStringRunes(5)
 		rows_to := table_to.ReferenceTable.GetFilteredRows(table_to.ReferenceColumnName + "='" + properties[table_to.ColumnName] + "'", -1, -1)
-		node_to := MergeQuery(label_to, table_to.ReferenceTable, rows_to[0])
+		node_to := MergeQuery(label_to, table_to.ReferenceTable, rows_to[0], false)
 
 		updated_keys := []string{}
 		for k := range databaseChange.Old {
