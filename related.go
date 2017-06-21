@@ -3,6 +3,8 @@ package main
 import (
 	"strings"
 	"encoding/json"
+	"reflect"
+	"strconv"
 )
 
 func (table *Table) GetTag() string {
@@ -72,9 +74,15 @@ func (table *Table) GetSetAndProperty(label string, properties map[string]string
 }
 
 func isJSON(s string) (error, map[string]string) {
-	var js map[string]string
+	var js map[string]interface{}
 	err := json.Unmarshal([]byte(s), &js)
-	return err, js
+	result := map[string]string{}
+	if err == nil {
+		for key, value := range js{
+			result[key] = GetValue(value)
+		}
+	}
+	return err, result
 }
 
 func (foreign *ForeignKey) GetRelationSetAndProperty(label string, tableProperties map[string]string, referenceProperties map[string]string) (string, string) {
@@ -103,4 +111,26 @@ func (foreign *ForeignKey) GetTag() string {
 		return relationConfigs.Label
 	}
 	return foreign.ReferenceTable.GetTag() + "_" + foreign.Table.GetTag()
+}
+
+func GetValue(data interface{}) string {
+	val := reflect.ValueOf(data)
+	switch val.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return strconv.FormatInt(val.Int(), 10)
+	case reflect.Float32, reflect.Float64:
+		data_int := int(val.Float())
+		if (val.Float() - float64(data_int)) == 0 {
+			return strconv.FormatInt(int64(val.Float()), 10)
+		}
+		return strconv.FormatFloat(val.Float(), 'f', 6, 64)
+	case reflect.Bool:
+		if val.Bool() {
+			return "true"
+		}
+		return "false"
+	case reflect.String:
+		return val.String()
+	}
+	return ""
 }

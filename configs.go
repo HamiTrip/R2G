@@ -130,10 +130,33 @@ func loadConfig() {
 		}
 
 		SystemConfig.SkipTables = temp.SkipTables
-		SystemConfig.Database = &temp.Database
+		SystemConfig.Database = loadEnvDbConfig(&temp.Database)
 		SystemConfig.Debug = temp.Debug
 	}
 
+}
+
+func loadEnvDbConfig(dbConfig *DatabaseConfig) *DatabaseConfig {
+
+	dbConfig.Mysql.Host = getEnvDefault("_MYSQL_HOST", dbConfig.Mysql.Host)
+	dbConfig.Mysql.Port = getEnvDefault("_MYSQL_PORT", dbConfig.Mysql.Port)
+	dbConfig.Mysql.DbName = getEnvDefault("_MYSQL_DB", dbConfig.Mysql.DbName)
+	dbConfig.Mysql.Username = getEnvDefault("_MYSQL_USER", dbConfig.Mysql.Username)
+	dbConfig.Mysql.Password = getEnvDefault("_MYSQL_PASS", dbConfig.Mysql.Password)
+
+	dbConfig.Graph.Host = getEnvDefault("_NEO_HOST", dbConfig.Graph.Host)
+	dbConfig.Graph.Port = getEnvDefault("_NEO_PORT", dbConfig.Graph.Port)
+	dbConfig.Graph.Username = getEnvDefault("_NEO_USER", dbConfig.Graph.Username)
+	dbConfig.Graph.Password = getEnvDefault("_NEO_PASS", dbConfig.Graph.Password)
+
+	return dbConfig
+}
+
+func getEnvDefault(key string, default_data string) string {
+	if env := os.Getenv(key); env != "" {
+		return env
+	}
+	return default_data
 }
 
 func (configuration *Configuration) findTableConfig(table string) *TableConfig {

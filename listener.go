@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"encoding/json"
-	"reflect"
-	"strconv"
 	"os/exec"
 	"os"
 	"bufio"
@@ -19,16 +17,16 @@ func RunCommand(db *DbMap) {
 			"run",
 			"osheroff/maxwell",
 			"bin/maxwell",
-			"--user="+mysql.Username,
-			"--password="+mysql.Password,
-			"--host=172.17.0.1",
+			"--user=" + mysql.Username,
+			"--password=" + mysql.Password,
+			"--host=" + mysql.Host,
 			"--producer=stdout")
 	} else {
 		cmd = exec.Command(
 			"/app/bin/maxwell",
-			"--user="+mysql.Username,
-			"--password="+mysql.Password,
-			"--host="+mysql.Host,
+			"--user=" + mysql.Username,
+			"--password=" + mysql.Password,
+			"--host=" + mysql.Host,
 			"--producer=stdout")
 	}
 
@@ -131,8 +129,10 @@ type DatabaseChange struct {
 }
 
 func handelData(data string, db *DbMap) {
-	fmt.Println(data)
 	databaseChange := DatabaseChange{}
+	if (DEBUG) {
+		fmt.Println(data)
+	}
 	err := json.Unmarshal([]byte(data), &databaseChange)
 	if err != nil {
 		fmt.Println("cannot decode json !")
@@ -140,7 +140,11 @@ func handelData(data string, db *DbMap) {
 		return
 	}
 
-	if databaseChange.Database != "csp" {
+	if databaseChange.Database != db.Mysql.DbName {
+		return
+	}
+
+	if stringInSlice(databaseChange.Table, SystemConfig.SkipTables) {
 		return
 	}
 
@@ -159,7 +163,10 @@ func handelData(data string, db *DbMap) {
 		query = databaseChange.deleteQuery()
 		break
 	}
-	fmt.Println(query)
+
+	if (DEBUG) {
+		fmt.Println(query)
+	}
 	_, err = db.Graph.Conn.ExecNeo(query, make(map[string]interface{}))
 	if err != nil {
 		fmt.Println("Errorr", err)
@@ -238,49 +245,29 @@ func (databaseChange *DatabaseChange) updateQuery() string {
 
 func (databaseChange *DatabaseChange) deleteQuery() string {
 
-	//tableConfig := configuration.GetTableConfig(databaseChange.TableStructure)
+	tableConfig := SystemConfig.GetTableConfig(databaseChange.TableStructure)
 
+	var query string
 	property := " "
 	for key, value := range databaseChange.Data {
 		if databaseChange.TableStructure.IsSkipProperty(key) {
 			continue
 		}
 
-		if databaseChange.Type != "update" {
-			if databaseChange.TableStructure.IsUniqueProperty(key) {
-				property += " n." + key + "='" + FixStringStyle(GetValue(value)) + "' ,"
-			}
-		}
+		property += " n." + key + "='" + FixStringStyle(GetValue(value)) + "' AND"
+
+	}
+	if len(property) == 1 {
+		return "RETURN Null"
 	}
 
-	query := "MATCH (n:" + databaseChange.TableStructure.GetTag() + ") WHERE " + property[:len(property) - 1] + " DETACH DELETE n"
+	if tableConfig.IsManyToMany {
+		query = "MATCH ()-[n:" + databaseChange.TableStructure.GetTag() + "]-() WHERE " + property[:len(property) - 3] + " DELETE r"
+	} else {
+		query = "MATCH (n:" + databaseChange.TableStructure.GetTag() + ") WHERE " + property[:len(property) - 3] + " DETACH DELETE n"
+	}
+
 	return query
-}
-
-func DeleteRelation() {
-
-}
-
-func GetValue(data interface{}) string {
-	val := reflect.ValueOf(data)
-	switch val.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return strconv.FormatInt(val.Int(), 10)
-	case reflect.Float32, reflect.Float64:
-		data_int := int(val.Float())
-		if (val.Float() - float64(data_int)) == 0 {
-			return strconv.FormatInt(int64(val.Float()), 10)
-		}
-		return strconv.FormatFloat(val.Float(), 'f', 6, 64)
-	case reflect.Bool:
-		if val.Bool() {
-			return "true"
-		}
-		return "false"
-	case reflect.String:
-		return val.String()
-	}
-	return ""
 }
 
 func (databaseChange *DatabaseChange) GetSetANdProperty(label string) (string, string) {

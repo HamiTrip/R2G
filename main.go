@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const LIMIT = 20
+const DEBUG = true
 
 var ARGS_REQUESTED_TABLES = []string{}
 
@@ -115,13 +115,13 @@ func insertData(dbmap *DbMap, table *Table) {
 	bar.SetWidth(80)
 	for paginated.Next() {
 		rows := table.GetRows(paginated.getLimitOffset())
-		saveToGraph(dbmap, table, rows)
+		saveToGraph(dbmap, table, rows, true)
 		bar.Increment()
 	}
 	bar.FinishPrint("End of insert Table " + table.name)
 }
 
-func saveToGraph(dbmap *DbMap, table *Table, rows []map[string]string) {
+func saveToGraph(dbmap *DbMap, table *Table, rows []map[string]string, frist_try bool) {
 	tableConfig := SystemConfig.GetTableConfig(table)
 	if tableConfig.IsManyToMany {
 		queries := []string{}
@@ -131,7 +131,14 @@ func saveToGraph(dbmap *DbMap, table *Table, rows []map[string]string) {
 		}
 		_, err := dbmap.Graph.Conn.ExecPipeline(queries, make([]map[string]interface{}, len(queries))...)
 		if err != nil {
-			fmt.Println(queries[0])
+			fmt.Println("Samaple query :" + queries[0])
+			fmt.Println("Error Wile Insert Retry ")
+			if frist_try {
+				fmt.Println(err)
+				fmt.Println("Start to retry !")
+				saveToGraph(dbmap, table, rows, false)
+				return
+			}
 			panic(err)
 		}
 	} else {
@@ -142,7 +149,14 @@ func saveToGraph(dbmap *DbMap, table *Table, rows []map[string]string) {
 		}
 		_, err := dbmap.Graph.Conn.ExecPipeline(queries, make([]map[string]interface{}, len(queries))...)
 		if err != nil {
-			fmt.Println(queries[0])
+			fmt.Println("Samaple query :" + queries[0])
+			fmt.Println("Error Wile Insert Retry ")
+			if frist_try {
+				fmt.Println(err)
+				fmt.Println("Start to retry !")
+				saveToGraph(dbmap, table, rows, false)
+				return
+			}
 			panic(err)
 		}
 	}
