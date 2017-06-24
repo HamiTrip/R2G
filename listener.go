@@ -286,7 +286,11 @@ func (databaseChange *DatabaseChange) GetSetANdProperty(label string) (string, s
 			}
 		} else {
 			if databaseChange.TableStructure.IsUniqueProperty(key) {
-				property += " " + key + ":'" + FixStringStyle(GetValue(databaseChange.Old[key])) + "' ,"
+				if val, ok := databaseChange.Old["foo"]; ok {
+					property += " " + key + ":'" + FixStringStyle(GetValue(val)) + "' ,"
+				} else {
+					property += " " + key + ":'" + FixStringStyle(GetValue(value)) + "' ,"
+				}
 			}
 
 			set += " " + label + "." + key + "='" + FixStringStyle(GetValue(value)) + "',"
