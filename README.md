@@ -63,8 +63,11 @@ For example (Not for many to many tables is relation):
     ]
     
 **name**: Mysql table name
+
 **label**: Neo4j ***node*** label
+
 **UniqueColumns**: The unique columns (set index or this properties in neo4j)
+
 **SkipColumns**: skip this columns and don't save to node properties
 
 
@@ -90,9 +93,13 @@ For example (Not for many to many tables is relation):
 this configuration is mostly like the first example.
 
 **name**: Mysql table name
+
 **label**: Neo4j ***relation*** label
+
 **IsManyToMany**: set this table is many-to-many troth table
+
 **UniqueColumns**: The unique columns (set index or this properties in neo4j)
+
 **SkipColumns**: skip this columns and don't save to node properties
 
 
@@ -111,7 +118,9 @@ For example (without relation properties):
 This method find relations from mysql foreign keys and you can customize the relations.
 
 **Label**: Neo4j ***relation*** label
+
 **Table**: The mysql table
+
 **ReferenceTable**: The mysql reference table
 
 
@@ -132,4 +141,12 @@ you can use table or reference table columns value as relation values
     ]
 
 
+
+**Label**: Neo4j ***relation*** label
+
+**Table**: The mysql table
+
+**ReferenceTable**: The mysql reference table
+
+**Properties**: you can set properties
 
