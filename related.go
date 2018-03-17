@@ -5,7 +5,11 @@ import (
 	"encoding/json"
 	"reflect"
 	"strconv"
+	"sync"
 )
+
+
+var Mutex = new(sync.Mutex)
 
 func (table *Table) GetTag() string {
 	tableConfig := SystemConfig.GetTableConfig(table)
@@ -51,6 +55,7 @@ func (table *Table) GetSetAndProperty(label string, properties map[string]string
 		if table.IsSkipProperty(key) {
 			continue
 		}
+
 		if err, js := isJSON(value); err == nil {
 			if table.IsUniqueProperty(key) {
 				for sub_key, sub_value := range js {
@@ -61,6 +66,7 @@ func (table *Table) GetSetAndProperty(label string, properties map[string]string
 					set += " " + label + "." + sub_key + "='" + FixStringStyle(sub_value) + "',"
 				}
 			}
+
 		} else {
 			if table.IsUniqueProperty(key) {
 				property += " " + key + ":'" + FixStringStyle(value) + "' ,"
@@ -78,7 +84,7 @@ func isJSON(s string) (error, map[string]string) {
 	err := json.Unmarshal([]byte(s), &js)
 	result := map[string]string{}
 	if err == nil {
-		for key, value := range js{
+		for key, value := range js {
 			result[key] = GetValue(value)
 		}
 	}
@@ -131,6 +137,13 @@ func GetValue(data interface{}) string {
 		return "false"
 	case reflect.String:
 		return val.String()
+
+	case reflect.Map:
+		b, _ := json.Marshal(val.Interface())
+		return string(b)
+	case reflect.Slice:
+		b, _ := json.Marshal(val.Interface())
+		return string(b)
 	}
 	return ""
 }

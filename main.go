@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"strings"
+	"time"
 )
 
 const DEBUG = true
@@ -48,6 +49,7 @@ func main() {
 	if stringInSlice("Listener", args) {
 		RunCommand(db)
 	}
+	time.Sleep(10000000000000)
 }
 
 func R2G(db *DbMap) {
@@ -74,7 +76,6 @@ func R2G(db *DbMap) {
 			if stringInSlice(table.name, SystemConfig.SkipTables) {
 				continue
 			}
-
 			insertData(db, table)
 		}
 	} else {

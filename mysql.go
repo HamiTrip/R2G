@@ -5,6 +5,7 @@ import (
 	"gopkg.in/gorp.v1"
 	_ "github.com/ziutek/mymysql/godrv"
 	"strconv"
+	"fmt"
 )
 
 type MysqlDbMap struct {
@@ -22,6 +23,7 @@ func ConnectMysql() *MysqlDbMap {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println(db)
 
 	return &MysqlDbMap{Conn:&gorp.DbMap{Db: db}, DbName:mysql.DbName}
 }
@@ -35,14 +37,17 @@ func (dbmap *MysqlDbMap) GetConnection() *gorp.DbMap {
 }
 
 func (dbmap *MysqlDbMap) GetTables() map[string]*Table {
-
 	if len(dbmap.Tables) > 0 {
 		return dbmap.Tables
 	}
 
 	tables := []string{}
 	dbmap.Tables = make(map[string]*Table)
-	dbmap.GetConnection().Select(&tables, "SHOW TABLES")
+	_, err := dbmap.GetConnection().Select(&tables, "SHOW TABLES")
+	if err != nil {
+		panic(err)
+	}
+
 	for _, table := range tables {
 		dbmap.Tables[table] = &Table{dbmap:dbmap, name:table}
 	}
@@ -97,6 +102,9 @@ func (dbmap *MysqlDbMap) GetRows(table *Table, where string, limit int, offset i
 		query += "WHERE " + where
 	}
 
+	query += " ORDER BY id DESC"
+
+
 	if limit != -1 {
 		if offset != -1 {
 			query += " LIMIT " + strconv.Itoa(offset) + ", " + strconv.Itoa(limit)
@@ -104,6 +112,7 @@ func (dbmap *MysqlDbMap) GetRows(table *Table, where string, limit int, offset i
 			query += " LIMIT " + strconv.Itoa(limit)
 		}
 	}
+
 
 	result, _ := dbmap.Conn.Db.Query(query)
 

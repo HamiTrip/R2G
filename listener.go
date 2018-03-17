@@ -12,6 +12,12 @@ func RunCommand(db *DbMap) {
 	var cmd  *exec.Cmd
 	mysql := SystemConfig.Database.Mysql
 	if SystemConfig.Debug {
+		var host = ""
+		if mysql.Host == "127.0.0.1" {
+			host = "172.17.0.1"
+		} else {
+			host = mysql.Host
+		}
 		cmd = exec.Command(
 			"docker",
 			"run",
@@ -19,7 +25,7 @@ func RunCommand(db *DbMap) {
 			"bin/maxwell",
 			"--user=" + mysql.Username,
 			"--password=" + mysql.Password,
-			"--host=" + mysql.Host,
+			"--host=" + host,
 			"--producer=stdout")
 	} else {
 		cmd = exec.Command(
@@ -167,7 +173,11 @@ func handelData(data string, db *DbMap) {
 	if (DEBUG) {
 		fmt.Println(query)
 	}
+
+	Mutex.Lock()
 	_, err = db.Graph.Conn.ExecNeo(query, make(map[string]interface{}))
+	Mutex.Unlock()
+
 	if err != nil {
 		fmt.Println("Errorr", err)
 	}
@@ -193,6 +203,11 @@ func (databaseChange *DatabaseChange) updateQuery() string {
 	tableConfig := SystemConfig.GetTableConfig(databaseChange.TableStructure)
 
 	set, property := databaseChange.GetSetANdProperty("nod")
+	fmt.Println("---------------------------------------------")
+	fmt.Println(set)
+	fmt.Println("==================================")
+	fmt.Println(property)
+	fmt.Println("---------------------------------------------")
 	label := "nod"
 
 	if tableConfig.IsManyToMany {
@@ -273,31 +288,38 @@ func (databaseChange *DatabaseChange) deleteQuery() string {
 func (databaseChange *DatabaseChange) GetSetANdProperty(label string) (string, string) {
 	set := " "
 	property := " "
-	for key, value := range databaseChange.Data {
-		if databaseChange.TableStructure.IsSkipProperty(key) {
-			continue
-		}
 
-		if databaseChange.Type != "update" {
+	if databaseChange.Type != "update" {
+		for key, value := range databaseChange.Data {
+			if databaseChange.TableStructure.IsSkipProperty(key) {
+				continue
+			}
+
 			if databaseChange.TableStructure.IsUniqueProperty(key) {
 				property += " " + key + ":'" + FixStringStyle(GetValue(value)) + "' ,"
 			} else {
 				set += " " + label + "." + key + "='" + FixStringStyle(GetValue(value)) + "',"
 			}
-		} else {
+		}
+
+	} else {
+		for key, value := range databaseChange.Data {
+			if databaseChange.TableStructure.IsSkipProperty(key) {
+				continue
+			}
+			set += " " + label + "." + key + "='" + FixStringStyle(GetValue(value)) + "',"
+
 			if databaseChange.TableStructure.IsUniqueProperty(key) {
-				if val, ok := databaseChange.Old["foo"]; ok {
+				if val, ok := databaseChange.Old[key]; ok {
 					property += " " + key + ":'" + FixStringStyle(GetValue(val)) + "' ,"
 				} else {
 					property += " " + key + ":'" + FixStringStyle(GetValue(value)) + "' ,"
 				}
 			}
-
-			set += " " + label + "." + key + "='" + FixStringStyle(GetValue(value)) + "',"
-
 		}
 
 	}
+
 	return set[:len(set) - 1], property[:len(property) - 1]
 }
 
